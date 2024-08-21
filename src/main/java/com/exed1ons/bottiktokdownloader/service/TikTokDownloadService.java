@@ -58,19 +58,16 @@ public class TikTokDownloadService {
         }
     }
 
-    public boolean deleteFile(String filePath) {
-        if (filePath != null) {
-            File fileToDelete = new File(filePath);
-            if (fileToDelete.exists()) {
-                if (fileToDelete.delete()) {
-                    logger.info("File deleted successfully: " + filePath);
-                    return true;
-                } else {
-                    logger.info("Unable to delete file: " + filePath);
-                    return false;
-                }
+    public void deleteFile(String filePath) {
+        File file = new File(filePath);
+        if (file.exists()) {
+            if (file.delete()) {
+                logger.info("File deleted successfully: " + filePath);
+            } else {
+                logger.error("Failed to delete file: " + filePath);
             }
+        } else {
+            logger.warn("File not found for deletion: " + filePath);
         }
-        return false;
     }
 }

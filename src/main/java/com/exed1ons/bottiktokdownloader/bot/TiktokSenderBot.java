@@ -129,6 +129,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         try {
             execute(message);
+
+            String fileName = videoFile.getMediaName();
+            logger.info("Deleting video file: " + fileName);
+            if (fileName != null) {
+                sendVideoService.deleteVideoFile(fileName);
+            }
         } catch (TelegramApiException e) {
             logger.error("Error while sending message", e);
         }

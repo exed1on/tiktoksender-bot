@@ -60,4 +60,9 @@ public class SendVideoService {
             return null;
         }
     }
+
+    public void deleteVideoFile(String fileName) {
+        String videoFilePath = downloadedVideoPath + File.separator + fileName;
+        tikTokDownloadService.deleteFile(videoFilePath);
+    }
 }
