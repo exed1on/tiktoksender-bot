@@ -1,5 +1,6 @@
 package com.exed1ons.bottiktokdownloader.bot;
 
+import com.exed1ons.bottiktokdownloader.service.SendReelService;
 import com.exed1ons.bottiktokdownloader.service.SendVideoService;
 import com.exed1ons.bottiktokdownloader.service.TikTokLinkConverter;
 import lombok.Getter;
@@ -32,16 +33,18 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
     private final SendVideoService sendVideoService;
     private final TikTokLinkConverter tikTokLinkConverter;
+    private final SendReelService sendReelService;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendVideoService sendVideoService, TikTokLinkConverter tikTokLinkConverter) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendVideoService sendVideoService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService) {
 
         super(botToken);
         this.botName = botName;
         this.botToken = botToken;
         this.sendVideoService = sendVideoService;
         this.tikTokLinkConverter = tikTokLinkConverter;
+        this.sendReelService = sendReelService;
     }
 
     @Override
@@ -84,16 +87,32 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 link = longUrlMatcher.group();
             }
 
+            Pattern instagramReelPattern = Pattern.compile("https://www.instagram.com/reel/[A-Za-z0-9-_]+");
+            Matcher instagramReelMatcher = instagramReelPattern.matcher(text);
+            if (instagramReelMatcher.find()) {
+                link = instagramReelMatcher.group();
+            }
+
             if (link != null) {
-                logger.info("Received link: " + link);
-                String videoId = sendVideoService.extractVideoId(link);
-                if (videoId != null) {
-                    sendVideo(message.getChatId().toString(), sendVideoService.getVideo(link));
-                } else {
-                    logger.error("Failed to extract video ID from link: " + link);
+                if (link.contains("tiktok.com")) {
+                    String videoId = sendVideoService.extractVideoId(link);
+                    if (videoId != null) {
+                        sendVideo(message.getChatId().toString(), sendVideoService.getVideo(link));
+                    } else {
+                        logger.error("Failed to extract video ID from link: " + link);
+                    }
+                }
+
+                else if (link.contains("instagram.com/reel")) {
+                    InputFile reelVideo = sendReelService.getVideo(link);
+                    if (reelVideo != null) {
+                        sendVideo(message.getChatId().toString(), reelVideo);
+                    } else {
+                        logger.error("Failed to download Instagram Reel from link: " + link);
+                    }
                 }
             } else {
-                logger.warn("No valid TikTok URL found in message: " + text);
+                logger.warn("No valid TikTok or Instagram URL found in message: " + text);
             }
         }
     }
