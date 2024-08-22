@@ -21,7 +21,7 @@ public class InstagramReelDownloadService {
     private static final String cobaltApiUrl = "https://api.cobalt.tools/api/json";
 
     public void downloadReel(String reelUrl) {
-        String outputFilePath = downloadDirectory + File.separator + reelUrl.hashCode() + ".mp4";
+        String outputFilePath = downloadDirectory + File.separator + Math.abs(reelUrl.hashCode()) + ".mp4";
 
         try {
             File directory = new File(downloadDirectory);

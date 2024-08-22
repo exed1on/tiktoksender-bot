@@ -7,8 +7,6 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 
 import java.io.File;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class SendReelService {
@@ -28,7 +26,7 @@ public class SendReelService {
 
         instagramReelDownloadService.downloadReel(reelUrl);
 
-        String videoFilePath = downloadedVideoPath + File.separator + reelUrl.hashCode() + ".mp4";
+        String videoFilePath = downloadedVideoPath + File.separator + Math.abs(reelUrl.hashCode()) + ".mp4";
 
         File videoFile = new File(videoFilePath);
         if (videoFile.exists()) {
