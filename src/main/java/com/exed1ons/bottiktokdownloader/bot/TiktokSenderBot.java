@@ -1,5 +1,6 @@
 package com.exed1ons.bottiktokdownloader.bot;
 
+import com.exed1ons.bottiktokdownloader.service.ImageToGifConverter;
 import com.exed1ons.bottiktokdownloader.service.SendReelService;
 import com.exed1ons.bottiktokdownloader.service.SendVideoService;
 import com.exed1ons.bottiktokdownloader.service.TikTokLinkConverter;
@@ -10,15 +11,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
+import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
 import org.telegram.telegrambots.meta.api.methods.send.SendAudio;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
-import org.telegram.telegrambots.meta.api.objects.InputFile;
-import org.telegram.telegrambots.meta.api.objects.Message;
-import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,10 +38,11 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private final SendVideoService sendVideoService;
     private final TikTokLinkConverter tikTokLinkConverter;
     private final SendReelService sendReelService;
+    private final ImageToGifConverter imageToGifConverter;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendVideoService sendVideoService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendVideoService sendVideoService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter) {
 
         super(botToken);
         this.botName = botName;
@@ -45,6 +50,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         this.sendVideoService = sendVideoService;
         this.tikTokLinkConverter = tikTokLinkConverter;
         this.sendReelService = sendReelService;
+        this.imageToGifConverter = imageToGifConverter;
     }
 
     @Override
@@ -60,7 +66,20 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             logger.info("Received message: " + message.getText());
             logger.info("From: " + message.getChatId());
 
-            processMessage(message);
+            if (message.hasText() && message.getText().equals("/gif") && message.isReply()) {
+                Message repliedMessage = message.getReplyToMessage();
+                if (repliedMessage.hasPhoto()) {
+                    PhotoSize photo = repliedMessage.getPhoto().get(repliedMessage.getPhoto().size() - 1);
+                    sendGif(message.getChatId().toString(),
+                            imageToGifConverter.createGifFromImage(
+                                    downloadImage(photo.getFileId())));
+                } else {
+                    sendMessage(message.getChatId().toString(),
+                            "/gif command should be used with a photo reply only");
+                }
+            } else {
+                processMessage(message);
+            }
         }
     }
 
@@ -115,6 +134,19 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
     }
 
+    public BufferedImage downloadImage(String fileId) {
+        try {
+            File telegramFile = execute(new GetFile(fileId));
+            String filePath = telegramFile.getFilePath();
+
+            String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
+
+            return ImageIO.read(new URL(fileUrl));
+        } catch (TelegramApiException | IOException e) {
+            logger.error("Failed to download image from Telegram: ", e);
+            return null;
+        }
+    }
 
     public void sendMessage(String chatId, String text) {
         SendMessage message = new SendMessage();
@@ -175,6 +207,18 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             }
         } catch (Exception e) {
             logger.error("Error while deleting video file", e);
+        }
+    }
+
+    public void sendGif(String chatId, InputFile gifFile) {
+        SendAnimation message = new SendAnimation();
+        message.setChatId(chatId);
+        message.setAnimation(gifFile);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending GIF", e);
         }
     }
 }
