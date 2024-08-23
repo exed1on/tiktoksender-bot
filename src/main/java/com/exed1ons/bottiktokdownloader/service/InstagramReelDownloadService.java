@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 @Service
 public class InstagramReelDownloadService {
@@ -26,38 +27,21 @@ public class InstagramReelDownloadService {
         try {
             File directory = new File(downloadDirectory);
             if (!directory.exists()) {
-                directory.mkdirs();
-                logger.info("Download directory created: " + downloadDirectory);
+                if (directory.mkdirs()) {
+                    logger.info("Download directory created: " + downloadDirectory);
+                } else {
+                    logger.error("Failed to create download directory: " + downloadDirectory);
+                    throw new IOException("Unable to create download directory: " + downloadDirectory);
+                }
             }
 
-            String requestBody = String.format("{\"url\": \"%s\", \"vCodec\": \"h264\", \"vQuality\": \"720\", \"aFormat\": \"mp3\"}", reelUrl);
-
-            URL url = new URL(cobaltApiUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setDoOutput(true);
-
-            try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = requestBody.getBytes("utf-8");
-                os.write(input, 0, input.length);
-            }
+            HttpURLConnection connection = getHttpURLConnection(reelUrl);
 
             logger.info("Sending request to Cobalt API for reel: " + reelUrl);
             int responseCode = connection.getResponseCode();
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                StringBuilder response = new StringBuilder();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-                    String responseLine;
-                    while ((responseLine = br.readLine()) != null) {
-                        response.append(responseLine.trim());
-                    }
-                }
-
-                JSONObject jsonResponse = new JSONObject(response.toString());
-                String downloadUrl = jsonResponse.getString("url");
+                String downloadUrl = getDownloadUrl(connection);
 
                 downloadFileFromUrl(downloadUrl, outputFilePath);
 
@@ -67,6 +51,36 @@ public class InstagramReelDownloadService {
         } catch (IOException | JSONException e) {
             logger.warn("Error during reel download: " + e.getMessage());
         }
+    }
+
+    private static String getDownloadUrl(HttpURLConnection connection) throws IOException {
+        StringBuilder response = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+            String responseLine;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+        }
+
+        JSONObject jsonResponse = new JSONObject(response.toString());
+        return jsonResponse.getString("url");
+    }
+
+    private static HttpURLConnection getHttpURLConnection(String reelUrl) throws IOException {
+        String requestBody = String.format("{\"url\": \"%s\", \"vCodec\": \"h264\", \"vQuality\": \"720\", \"aFormat\": \"mp3\"}", reelUrl);
+
+        URL url = new URL(cobaltApiUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setDoOutput(true);
+
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+        return connection;
     }
 
     private void downloadFileFromUrl(String fileUrl, String outputFilePath) {

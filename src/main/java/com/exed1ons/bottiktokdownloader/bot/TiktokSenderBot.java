@@ -97,16 +97,14 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 if (link.contains("tiktok.com")) {
                     String videoId = sendVideoService.extractVideoId(link);
                     if (videoId != null) {
-                        sendVideo(message.getChatId().toString(), sendVideoService.getVideo(link));
+                        sendTikTokVideo(message.getChatId().toString(), sendVideoService.getVideo(link));
                     } else {
                         logger.error("Failed to extract video ID from link: " + link);
                     }
-                }
-
-                else if (link.contains("instagram.com/reel")) {
+                } else if (link.contains("instagram.com/reel")) {
                     InputFile reelVideo = sendReelService.getVideo(link);
                     if (reelVideo != null) {
-                        sendVideo(message.getChatId().toString(), reelVideo);
+                        sendReelVideo(message.getChatId().toString(), reelVideo);
                     } else {
                         logger.error("Failed to download Instagram Reel from link: " + link);
                     }
@@ -141,22 +139,42 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendVideo(String chatId, InputFile videoFile) {
+    public String sendVideo(String chatId, InputFile videoFile) {
         SendVideo message = new SendVideo();
         message.setChatId(chatId);
         message.setVideo(videoFile);
-
         try {
             execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending message", e);
+        }
 
-            String fileName = videoFile.getMediaName();
+        return videoFile.getMediaName();
+    }
+
+    public void sendTikTokVideo(String chatId, InputFile videoFile) {
+        String fileName = sendVideo(chatId, videoFile);
+
+        try {
             logger.info("Deleting video file: " + fileName);
             if (fileName != null) {
                 sendVideoService.deleteVideoFile(fileName);
             }
-        } catch (TelegramApiException e) {
-            logger.error("Error while sending message", e);
+        } catch (Exception e) {
+            logger.error("Error while deleting video file", e);
         }
     }
 
+    public void sendReelVideo(String chatId, InputFile videoFile) {
+        String fileName = sendVideo(chatId, videoFile);
+
+        try {
+            logger.info("Deleting video file: " + fileName);
+            if (fileName != null) {
+                sendReelService.deleteVideoFile(fileName);
+            }
+        } catch (Exception e) {
+            logger.error("Error while deleting video file", e);
+        }
+    }
 }

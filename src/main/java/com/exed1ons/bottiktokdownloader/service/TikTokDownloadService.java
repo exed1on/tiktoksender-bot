@@ -1,6 +1,5 @@
 package com.exed1ons.bottiktokdownloader.service;
 
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,8 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class TikTokDownloadService {
@@ -29,8 +26,12 @@ public class TikTokDownloadService {
         try {
             File directory = new File(downloadDirectory);
             if (!directory.exists()) {
-                directory.mkdirs();
-                logger.info("Download directory created: " + downloadDirectory);
+                if (directory.mkdirs()) {
+                    logger.info("Download directory created: " + downloadDirectory);
+                } else {
+                    logger.error("Failed to create download directory: " + downloadDirectory);
+                    throw new IOException("Unable to create download directory: " + downloadDirectory);
+                }
             }
 
             URL url = new URL(videoUrl);

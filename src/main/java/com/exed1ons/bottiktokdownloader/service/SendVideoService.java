@@ -47,7 +47,7 @@ public class SendVideoService {
     }
 
     public String extractVideoId(String tikTokUrl) {
-        String pattern = "(?:https?:\\/\\/)?(?:www\\.)?tiktok\\.com\\/[^\\/]+\\/video\\/([0-9]+)|https:\\/\\/vm\\.tiktok\\.com\\/([A-Za-z0-9]+)";
+        String pattern = "(?:https?://)?(?:www\\.)?tiktok\\.com/[^/]+/video/([0-9]+)";
         Pattern compiledPattern = Pattern.compile(pattern);
         Matcher matcher = compiledPattern.matcher(tikTokUrl);
 
