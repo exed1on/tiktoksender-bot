@@ -11,15 +11,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class SendVideoService {
-    private static final Logger logger = LoggerFactory.getLogger(SendVideoService.class);
+public class SendTikTokService {
+    private static final Logger logger = LoggerFactory.getLogger(SendTikTokService.class);
 
     private final TikTokDownloadService tikTokDownloadService;
 
     @Value("${download.directory.video}")
     private String downloadedVideoPath;
 
-    public SendVideoService(TikTokDownloadService tikTokDownloadService) {
+    public SendTikTokService(TikTokDownloadService tikTokDownloadService) {
         this.tikTokDownloadService = tikTokDownloadService;
     }
 

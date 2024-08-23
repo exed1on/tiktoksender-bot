@@ -2,7 +2,7 @@ package com.exed1ons.bottiktokdownloader.bot;
 
 import com.exed1ons.bottiktokdownloader.service.ImageToGifConverter;
 import com.exed1ons.bottiktokdownloader.service.SendReelService;
-import com.exed1ons.bottiktokdownloader.service.SendVideoService;
+import com.exed1ons.bottiktokdownloader.service.SendTikTokService;
 import com.exed1ons.bottiktokdownloader.service.TikTokLinkConverter;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,19 +35,19 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private String botName;
     private String botToken;
 
-    private final SendVideoService sendVideoService;
+    private final SendTikTokService sendTikTokService;
     private final TikTokLinkConverter tikTokLinkConverter;
     private final SendReelService sendReelService;
     private final ImageToGifConverter imageToGifConverter;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendVideoService sendVideoService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter) {
 
         super(botToken);
         this.botName = botName;
         this.botToken = botToken;
-        this.sendVideoService = sendVideoService;
+        this.sendTikTokService = sendTikTokService;
         this.tikTokLinkConverter = tikTokLinkConverter;
         this.sendReelService = sendReelService;
         this.imageToGifConverter = imageToGifConverter;
@@ -114,9 +114,9 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
             if (link != null) {
                 if (link.contains("tiktok.com")) {
-                    String videoId = sendVideoService.extractVideoId(link);
+                    String videoId = sendTikTokService.extractVideoId(link);
                     if (videoId != null) {
-                        sendTikTokVideo(message.getChatId().toString(), sendVideoService.getVideo(link));
+                        sendTikTokVideo(message.getChatId().toString(), sendTikTokService.getVideo(link));
                     } else {
                         logger.error("Failed to extract video ID from link: " + link);
                     }
@@ -190,7 +190,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         try {
             logger.info("Deleting video file: " + fileName);
             if (fileName != null) {
-                sendVideoService.deleteVideoFile(fileName);
+                sendTikTokService.deleteVideoFile(fileName);
             }
         } catch (Exception e) {
             logger.error("Error while deleting video file", e);
