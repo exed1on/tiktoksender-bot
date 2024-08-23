@@ -23,9 +23,12 @@ public class ImageToGifConverter {
         String gifFilePath = GIF_OUTPUT_DIR + File.pathSeparator + "output.gif";
         try (FileOutputStream outputStream = new FileOutputStream(gifFilePath)) {
             AnimatedGifEncoder gifEncoder = new AnimatedGifEncoder();
-            gifEncoder.start(outputStream);
+            gifEncoder.setQuality(10);
             gifEncoder.setRepeat(0);
             gifEncoder.setDelay(500);
+            gifEncoder.setSize(image.getWidth(), image.getHeight());
+
+            gifEncoder.start(outputStream);
             gifEncoder.addFrame(image);
             gifEncoder.finish();
 
