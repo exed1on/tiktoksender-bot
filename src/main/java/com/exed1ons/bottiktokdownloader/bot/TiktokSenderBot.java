@@ -1,9 +1,6 @@
 package com.exed1ons.bottiktokdownloader.bot;
 
-import com.exed1ons.bottiktokdownloader.service.ImageToGifConverter;
-import com.exed1ons.bottiktokdownloader.service.SendReelService;
-import com.exed1ons.bottiktokdownloader.service.SendTikTokService;
-import com.exed1ons.bottiktokdownloader.service.TikTokLinkConverter;
+import com.exed1ons.bottiktokdownloader.service.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -39,10 +36,11 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private final TikTokLinkConverter tikTokLinkConverter;
     private final SendReelService sendReelService;
     private final ImageToGifConverter imageToGifConverter;
+    private final SendSongService sendSongService;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter, SendSongService sendSongService) {
 
         super(botToken);
         this.botName = botName;
@@ -51,6 +49,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         this.tikTokLinkConverter = tikTokLinkConverter;
         this.sendReelService = sendReelService;
         this.imageToGifConverter = imageToGifConverter;
+        this.sendSongService = sendSongService;
     }
 
     @Override
@@ -112,6 +111,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 link = instagramReelMatcher.group();
             }
 
+            Pattern spotifyTrackPattern = Pattern.compile("https://open.spotify.com/track/[A-Za-z0-9]+(\\?si=[A-Za-z0-9]+)?");
+            Matcher spotifyTrackMatcher = spotifyTrackPattern.matcher(text);
+            if (spotifyTrackMatcher.find()) {
+                link = spotifyTrackMatcher.group();
+            }
+
             if (link != null) {
                 if (link.contains("tiktok.com")) {
                     String videoId = sendTikTokService.extractVideoId(link);
@@ -127,6 +132,10 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                     } else {
                         logger.error("Failed to download Instagram Reel from link: " + link);
                     }
+                } else if (link.contains("open.spotify.com/track")) {
+                    sendAudio(message.getChatId().toString(), sendSongService.getSong(link));
+                } else {
+                    logger.error("Failed to extract track ID from Spotify link: " + link);
                 }
             } else {
                 logger.warn("No valid TikTok or Instagram URL found in message: " + text);
@@ -166,6 +175,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         try {
             execute(message);
+            sendSongService.deleteVideoFile(audioFile.getMediaName());
         } catch (TelegramApiException e) {
             logger.error("Error while sending message", e);
         }
