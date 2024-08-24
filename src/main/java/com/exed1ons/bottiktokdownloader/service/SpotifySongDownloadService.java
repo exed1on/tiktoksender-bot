@@ -34,7 +34,7 @@ public class SpotifySongDownloadService {
                 }
             }
 
-            String[] command = {"spotdl", "--audio", "youtube", "--lyrics", "genius", "--output", "{title}", url};
+            String[] command = {"spotdl", url};
 
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.directory(new File(downloadDirectory));
