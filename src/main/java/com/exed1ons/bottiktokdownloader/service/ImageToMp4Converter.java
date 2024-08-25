@@ -44,6 +44,7 @@ public class ImageToMp4Converter {
                     "ffmpeg", "-y",
                     "-loop", "1",
                     "-i", tempImageFile.getAbsolutePath(),
+                    "-vf", "scale=ceil(iw/2)*2:ceil(ih/2)*2",
                     "-c:v", "libx264",
                     "-t", "1",
                     "-pix_fmt", "yuv420p",
