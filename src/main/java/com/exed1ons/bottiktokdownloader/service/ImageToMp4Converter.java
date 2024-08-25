@@ -33,6 +33,10 @@ public class ImageToMp4Converter {
                 }
             }
 
+            if(new File(OUTPUT_FILE).exists()) {
+                deleteOutputFile();
+            }
+
             File tempImageFile = File.createTempFile("temp_image", ".png");
             ImageIO.write(image, "png", tempImageFile);
 
@@ -65,13 +69,13 @@ public class ImageToMp4Converter {
         return null;
     }
 
-    public void deleteOutputFile(String filePath) {
-        File file = new File(GIF_OUTPUT_DIR + File.separator + filePath);
+    public void deleteOutputFile() {
+        File file = new File(OUTPUT_FILE);
         if (file.exists()) {
             if (file.delete()) {
-                logger.info("File deleted successfully: " + filePath);
+                logger.info("File deleted successfully: " + OUTPUT_FILE);
             } else {
-                logger.error("Failed to delete file: " + filePath);
+                logger.error("Failed to delete file: " + OUTPUT_FILE);
             }
         }
     }

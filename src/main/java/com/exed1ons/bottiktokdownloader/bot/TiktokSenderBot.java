@@ -224,8 +224,8 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         try {
             execute(message);
-            logger.info("Deleting video file: " + mp4File.getMediaName());
-            imageToMp4Converter.deleteOutputFile(mp4File.getMediaName());
+            logger.info("Deleting video file...");
+            imageToMp4Converter.deleteOutputFile();
         } catch (TelegramApiException e) {
             logger.error("Error while sending GIF", e);
         }
