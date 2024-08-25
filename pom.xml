@@ -56,11 +56,6 @@
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
-        <dependency>
-            <groupId>com.madgag</groupId>
-            <artifactId>animated-gif-lib</artifactId>
-            <version>1.4</version>
-        </dependency>
     </dependencies>
 
     <build>

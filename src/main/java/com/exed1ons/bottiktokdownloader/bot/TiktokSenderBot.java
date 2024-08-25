@@ -9,10 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
-import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
-import org.telegram.telegrambots.meta.api.methods.send.SendAudio;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
+import org.telegram.telegrambots.meta.api.methods.send.*;
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -35,12 +32,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private final SendTikTokService sendTikTokService;
     private final TikTokLinkConverter tikTokLinkConverter;
     private final SendReelService sendReelService;
-    private final ImageToGifConverter imageToGifConverter;
+    private final ImageToMp4Converter imageToMp4Converter;
     private final SendSongService sendSongService;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToGifConverter imageToGifConverter, SendSongService sendSongService) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToMp4Converter imageToMp4Converter, SendSongService sendSongService) {
 
         super(botToken);
         this.botName = botName;
@@ -48,7 +45,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         this.sendTikTokService = sendTikTokService;
         this.tikTokLinkConverter = tikTokLinkConverter;
         this.sendReelService = sendReelService;
-        this.imageToGifConverter = imageToGifConverter;
+        this.imageToMp4Converter = imageToMp4Converter;
         this.sendSongService = sendSongService;
     }
 
@@ -70,7 +67,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 if (repliedMessage.hasPhoto()) {
                     PhotoSize photo = repliedMessage.getPhoto().get(repliedMessage.getPhoto().size() - 1);
                     sendGif(message.getChatId().toString(),
-                            imageToGifConverter.createGifFromImage(
+                            imageToMp4Converter.createMp4FromImage(
                                     downloadImage(photo.getFileId())));
                 } else {
                     sendMessage(message.getChatId().toString(),
@@ -220,13 +217,15 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
     }
 
-    public void sendGif(String chatId, InputFile gifFile) {
+    public void sendGif(String chatId, InputFile mp4File) {
         SendAnimation message = new SendAnimation();
         message.setChatId(chatId);
-        message.setAnimation(gifFile);
+        message.setAnimation(mp4File);
 
         try {
             execute(message);
+            logger.info("Deleting video file: " + mp4File.getMediaName());
+            imageToMp4Converter.deleteOutputFile(mp4File.getMediaName());
         } catch (TelegramApiException e) {
             logger.error("Error while sending GIF", e);
         }
