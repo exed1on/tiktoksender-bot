@@ -41,7 +41,7 @@ public class ImageToMp4Converter {
             ImageIO.write(image, "png", tempImageFile);
 
             String[] command = {
-                    "ffmpeg",
+                    "ffmpeg", "-y",
                     "-loop", "1",
                     "-i", tempImageFile.getAbsolutePath(),
                     "-c:v", "libx264",
