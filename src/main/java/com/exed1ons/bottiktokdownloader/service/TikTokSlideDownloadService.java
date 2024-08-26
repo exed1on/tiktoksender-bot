@@ -72,6 +72,7 @@ public class TikTokSlideDownloadService {
 
             int responseCode = conn.getResponseCode();
             logger.info("POST request response code: " + responseCode);
+            logger.info(conn.getResponseMessage());
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 InputStream inputStream = conn.getInputStream();
