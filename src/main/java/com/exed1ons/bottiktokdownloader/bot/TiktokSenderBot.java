@@ -126,52 +126,69 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 link = spotifyTrackMatcher.group();
             }
 
-            if (link != null) {
-                if (link.contains("tiktok.com/@")) {
-                    if (link.contains("/photo/")) {
-                        logger.info("Processing TikTok photo link: " + link);
-                        List<String> downloadedPhotos = tikTokSlideDownloadService.downloadSlides(link);
-                        if (downloadedPhotos != null && !downloadedPhotos.isEmpty()) {
-                            processTikTokPhotos(message.getChatId().toString(), downloadedPhotos);
-                        } else {
-                            logger.warn("No photos were downloaded from the TikTok photo link: " + link);
-                        }
-                    } else if (link.contains("/video/")) {
-                        String videoId = sendTikTokService.extractVideoId(link);
-                        if (videoId != null) {
-                            logger.info("Extracted video ID: " + videoId + " from link: " + link);
-                            InputFile videoFile = sendTikTokService.getVideo(link);
-                            if (videoFile != null) {
-                                sendTikTokVideo(message.getChatId().toString(), videoFile);
-                            } else {
-                                logger.error("Failed to get video file from link: " + link);
-                            }
-                        } else {
-                            logger.error("Failed to extract video ID from link: " + link);
-                        }
-                    } else if (link.contains("instagram.com/reel")) {
-                        InputFile reelVideo = sendReelService.getVideo(link);
-                        if (reelVideo != null) {
-                            sendReelVideo(message.getChatId().toString(), reelVideo);
-                        } else {
-                            logger.error("Failed to download Instagram Reel from link: " + link);
-                        }
-                    } else if (link.contains("open.spotify.com/track")) {
-                        InputFile trackAudio = sendSongService.getSong(link);
-                        if (trackAudio != null) {
-                            sendAudio(message.getChatId().toString(), trackAudio);
-                        } else {
-                            logger.error("Failed to get audio file from Spotify link: " + link);
-                        }
-                    } else {
-                        logger.warn("Unrecognized link format: " + link);
-                    }
-                } else {
-                    logger.warn("Link does not contain a recognized TikTok or Instagram URL: " + link);
-                }
+            if (link == null) {
+                logger.warn("Link is null in message: " + text);
+                return;
+            }
+
+            String chatId = message.getChatId().toString();
+
+            if (link.contains("tiktok.com/@")) {
+                handleTikTokLink(link, chatId);
+            } else if (link.contains("instagram.com/reel")) {
+                handleInstagramReel(link, chatId);
+            } else if (link.contains("open.spotify.com/track")) {
+                handleSpotifyTrack(link, chatId);
             } else {
                 logger.warn("No valid URL found in message: " + text);
             }
+        }
+    }
+
+    private void handleTikTokLink(String link, String chatId) {
+        if (link.contains("/photo/")) {
+            logger.info("Processing TikTok photo link: " + link);
+            List<String> downloadedPhotos = tikTokSlideDownloadService.downloadSlides(link);
+            if (downloadedPhotos != null && !downloadedPhotos.isEmpty()) {
+                processTikTokPhotos(chatId, downloadedPhotos);
+            } else {
+                logger.warn("No photos were downloaded from the TikTok photo link: " + link);
+            }
+        } else if (link.contains("/video/")) {
+            String videoId = sendTikTokService.extractVideoId(link);
+            if (videoId != null) {
+                logger.info("Extracted video ID: " + videoId + " from link: " + link);
+                InputFile videoFile = sendTikTokService.getVideo(link);
+                if (videoFile != null) {
+                    sendTikTokVideo(chatId, videoFile);
+                } else {
+                    logger.error("Failed to get video file from link: " + link);
+                }
+            } else {
+                logger.error("Failed to extract video ID from link: " + link);
+            }
+        } else {
+            logger.warn("Unrecognized TikTok link format: " + link);
+        }
+    }
+
+    private void handleInstagramReel(String link, String chatId) {
+        logger.info("Processing Instagram Reel link: " + link);
+        InputFile reelVideo = sendReelService.getVideo(link);
+        if (reelVideo != null) {
+            sendReelVideo(chatId, reelVideo);
+        } else {
+            logger.error("Failed to download Instagram Reel from link: " + link);
+        }
+    }
+
+    private void handleSpotifyTrack(String link, String chatId) {
+        logger.info("Processing Spotify track link: " + link);
+        InputFile trackAudio = sendSongService.getSong(link);
+        if (trackAudio != null) {
+            sendAudio(chatId, trackAudio);
+        } else {
+            logger.error("Failed to get audio file from Spotify link: " + link);
         }
     }
 
@@ -211,7 +228,8 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         deleteMediaAlbum(imagePaths);
     }
 
-    private void assignImageToMediaAlbum(String chatId, java.io.File photoFile, List<InputMediaPhoto> mediaGroup, List<String> messageIds) throws TelegramApiException {
+    private void assignImageToMediaAlbum(String chatId, java.io.File
+            photoFile, List<InputMediaPhoto> mediaGroup, List<String> messageIds) throws TelegramApiException {
         InputFile inputFile = new InputFile(photoFile);
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId);
@@ -271,95 +289,95 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
     }
 
-public BufferedImage downloadImage(String fileId) {
-    try {
-        File telegramFile = execute(new GetFile(fileId));
-        String filePath = telegramFile.getFilePath();
+    public BufferedImage downloadImage(String fileId) {
+        try {
+            File telegramFile = execute(new GetFile(fileId));
+            String filePath = telegramFile.getFilePath();
 
-        String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
+            String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
 
-        return ImageIO.read(new URL(fileUrl));
-    } catch (TelegramApiException | IOException e) {
-        logger.error("Failed to download image from Telegram: ", e);
-        return null;
-    }
-}
-
-public void sendMessage(String chatId, String text) {
-    SendMessage message = new SendMessage();
-    message.setChatId(chatId);
-    message.setText(text);
-
-    try {
-        execute(message);
-    } catch (TelegramApiException e) {
-        logger.error("Error while sending message", e);
-    }
-}
-
-public void sendAudio(String chatId, InputFile audioFile) {
-    SendAudio message = new SendAudio();
-    message.setChatId(chatId);
-    message.setAudio(audioFile);
-
-    try {
-        execute(message);
-        sendSongService.deleteVideoFile(audioFile.getMediaName());
-    } catch (TelegramApiException e) {
-        logger.error("Error while sending message", e);
-    }
-}
-
-public String sendVideo(String chatId, InputFile videoFile) {
-    SendVideo message = new SendVideo();
-    message.setChatId(chatId);
-    message.setVideo(videoFile);
-    try {
-        execute(message);
-    } catch (TelegramApiException e) {
-        logger.error("Error while sending message", e);
-    }
-
-    return videoFile.getMediaName();
-}
-
-public void sendTikTokVideo(String chatId, InputFile videoFile) {
-    String fileName = sendVideo(chatId, videoFile);
-
-    try {
-        logger.info("Deleting video file: " + fileName);
-        if (fileName != null) {
-            sendTikTokService.deleteVideoFile(fileName);
+            return ImageIO.read(new URL(fileUrl));
+        } catch (TelegramApiException | IOException e) {
+            logger.error("Failed to download image from Telegram: ", e);
+            return null;
         }
-    } catch (Exception e) {
-        logger.error("Error while deleting video file", e);
     }
-}
 
-public void sendReelVideo(String chatId, InputFile videoFile) {
-    String fileName = sendVideo(chatId, videoFile);
+    public void sendMessage(String chatId, String text) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(text);
 
-    try {
-        logger.info("Deleting video file: " + fileName);
-        if (fileName != null) {
-            sendReelService.deleteVideoFile(fileName);
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending message", e);
         }
-    } catch (Exception e) {
-        logger.error("Error while deleting video file", e);
     }
-}
 
-public void sendGif(String chatId, InputFile mp4File) {
-    SendAnimation message = new SendAnimation();
-    message.setChatId(chatId);
-    message.setAnimation(mp4File);
+    public void sendAudio(String chatId, InputFile audioFile) {
+        SendAudio message = new SendAudio();
+        message.setChatId(chatId);
+        message.setAudio(audioFile);
 
-    try {
-        execute(message);
-        logger.info("Deleting video file...");
-        imageToMp4Converter.deleteOutputFile();
-    } catch (TelegramApiException e) {
-        logger.error("Error while sending GIF", e);
+        try {
+            execute(message);
+            sendSongService.deleteVideoFile(audioFile.getMediaName());
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending message", e);
+        }
     }
-}
+
+    public String sendVideo(String chatId, InputFile videoFile) {
+        SendVideo message = new SendVideo();
+        message.setChatId(chatId);
+        message.setVideo(videoFile);
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending message", e);
+        }
+
+        return videoFile.getMediaName();
+    }
+
+    public void sendTikTokVideo(String chatId, InputFile videoFile) {
+        String fileName = sendVideo(chatId, videoFile);
+
+        try {
+            logger.info("Deleting video file: " + fileName);
+            if (fileName != null) {
+                sendTikTokService.deleteVideoFile(fileName);
+            }
+        } catch (Exception e) {
+            logger.error("Error while deleting video file", e);
+        }
+    }
+
+    public void sendReelVideo(String chatId, InputFile videoFile) {
+        String fileName = sendVideo(chatId, videoFile);
+
+        try {
+            logger.info("Deleting video file: " + fileName);
+            if (fileName != null) {
+                sendReelService.deleteVideoFile(fileName);
+            }
+        } catch (Exception e) {
+            logger.error("Error while deleting video file", e);
+        }
+    }
+
+    public void sendGif(String chatId, InputFile mp4File) {
+        SendAnimation message = new SendAnimation();
+        message.setChatId(chatId);
+        message.setAnimation(mp4File);
+
+        try {
+            execute(message);
+            logger.info("Deleting video file...");
+            imageToMp4Converter.deleteOutputFile();
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending GIF", e);
+        }
+    }
 }
