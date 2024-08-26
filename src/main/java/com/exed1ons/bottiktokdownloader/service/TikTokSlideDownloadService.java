@@ -71,15 +71,14 @@ public class TikTokSlideDownloadService {
             int responseCode = conn.getResponseCode();
             logger.info("POST request response code: " + responseCode);
 
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                InputStream inputStream = conn.getInputStream();
-                String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-                logger.debug("Received response from TikTok API: " + response);
+            InputStream inputStream = conn.getInputStream();
+            String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
 
-                logger.info("Response: " + response);
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                logger.debug("Received response from TikTok API: " + response);
                 return response;
             } else {
-                logger.error("Failed to get a valid response. HTTP Code: " + responseCode);
+                logger.error("Failed to get a valid response. HTTP Code: " + response);
                 return null;
             }
 
