@@ -10,10 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -66,18 +63,20 @@ public class TikTokSlideDownloadService {
         logger.info("Sending POST request to TikTok API with URL: " + tiktokUrl);
         String apiUrl = "https://ttsave.app/download";
         String jsonPayload = "{\"language_id\":\"1\", \"query\":\"" + tiktokUrl + "\"}";
+        BufferedReader reader = null;
 
         try {
             HttpURLConnection conn = getHttpURLConnection(apiUrl, jsonPayload);
 
             int responseCode = conn.getResponseCode();
             logger.info("POST request response code: " + responseCode);
-            logger.info(conn.getResponseMessage());
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 InputStream inputStream = conn.getInputStream();
                 String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 logger.debug("Received response from TikTok API: " + response);
+
+                logger.info("Response: " + response);
                 return response;
             } else {
                 logger.error("Failed to get a valid response. HTTP Code: " + responseCode);
