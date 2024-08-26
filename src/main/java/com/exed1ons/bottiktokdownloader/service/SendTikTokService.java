@@ -27,6 +27,7 @@ public class SendTikTokService {
 
 
         String videoId = extractVideoId(tikTokUrl);
+        tikTokDownloadService.sendPreDownloadRequest(tikTokUrl);
         tikTokDownloadService.downloadVideo(videoId);
 
         if (videoId == null) {
