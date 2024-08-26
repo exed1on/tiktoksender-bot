@@ -1,6 +1,5 @@
 package com.exed1ons.bottiktokdownloader.service;
 
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -20,7 +19,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class TikTokSlideDownloadService {
@@ -28,44 +26,44 @@ public class TikTokSlideDownloadService {
     private static final Logger logger = LoggerFactory.getLogger(TikTokSlideDownloadService.class);
 
     public List<String> downloadSlides(String tiktokUrl) {
-        logger.info("Starting downloadSlides with URL: " + tiktokUrl); // Entry log
+        logger.info("Starting downloadSlides with URL: " + tiktokUrl);
         List<String> downloadedPhotos = new ArrayList<>();
         try {
             String jsonResponse = sendPostRequest(tiktokUrl);
             if (jsonResponse != null) {
-                logger.debug("Received JSON response: " + jsonResponse); // Log the received JSON response
+                logger.debug("Received JSON response: " + jsonResponse);
 
                 Document doc = Jsoup.parse(jsonResponse);
                 Elements downloadLinks = doc.select("a[href]");
 
-                logger.info("Found " + downloadLinks.size() + " links in the response"); // Log number of links found
+                logger.info("Found " + downloadLinks.size() + " links in the response");
 
                 for (Element link : downloadLinks) {
                     String imageUrl = link.attr("href");
-                    logger.debug("Processing link: " + imageUrl); // Log each link being processed
+                    logger.debug("Processing link: " + imageUrl);
 
                     if (imageUrl.contains("tos-maliva-i-photomode-us")) {
                         String downloadedPath = downloadImage(imageUrl);
                         if (downloadedPath != null) {
-                            logger.info("Downloaded photo to: " + downloadedPath); // Log downloaded path
+                            logger.info("Downloaded photo to: " + downloadedPath);
                             downloadedPhotos.add(downloadedPath);
                         } else {
-                            logger.warn("Failed to download image: " + imageUrl); // Log if download fails
+                            logger.warn("Failed to download image: " + imageUrl);
                         }
                     }
                 }
             } else {
-                logger.warn("Received null response for URL: " + tiktokUrl); // Log null response
+                logger.warn("Received null response for URL: " + tiktokUrl);
             }
         } catch (Exception e) {
             logger.error("Error downloading slides: " + e.getMessage(), e);
         }
-        logger.info("Finished downloadSlides with " + downloadedPhotos.size() + " photos downloaded."); // Exit log
+        logger.info("Finished downloadSlides with " + downloadedPhotos.size() + " photos downloaded.");
         return downloadedPhotos;
     }
 
     private String sendPostRequest(String tiktokUrl) {
-        logger.info("Sending POST request to TikTok API with URL: " + tiktokUrl); // Log POST request initiation
+        logger.info("Sending POST request to TikTok API with URL: " + tiktokUrl);
         String apiUrl = "https://ttsave.app/download";
         String jsonPayload = "{\"language_id\":\"1\", \"query\":\"" + tiktokUrl + "\"}";
 
@@ -73,12 +71,12 @@ public class TikTokSlideDownloadService {
             HttpURLConnection conn = getHttpURLConnection(apiUrl, jsonPayload);
 
             int responseCode = conn.getResponseCode();
-            logger.info("POST request response code: " + responseCode); // Log response code
+            logger.info("POST request response code: " + responseCode);
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 InputStream inputStream = conn.getInputStream();
                 String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-                logger.debug("Received response from TikTok API: " + response); // Log the response from TikTok API
+                logger.debug("Received response from TikTok API: " + response);
                 return response;
             } else {
                 logger.error("Failed to get a valid response. HTTP Code: " + responseCode);
@@ -116,6 +114,7 @@ public class TikTokSlideDownloadService {
 
             int responseCode = conn.getResponseCode();
             logger.info("GET request response code: " + responseCode);
+            logger.info(conn.getResponseMessage());
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 try (InputStream inputStream = conn.getInputStream()) {
