@@ -1,10 +1,5 @@
 package com.exed1ons.bottiktokdownloader.service;
 
-import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlButton;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,23 +7,14 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-
 @Service
 public class TikTokDownloadService {
     private static final Logger logger = LoggerFactory.getLogger(TikTokDownloadService.class);
 
     @Value("${download.directory.video}")
     private String downloadDirectory;
-
-    private static final String PRE_DOWNLOAD_URL = "https://ssstik.io/en-1";
 
     public void downloadVideo(String videoId) {
         String videoUrl = "https://tikcdn.io/ssstik/" + videoId;

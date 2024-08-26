@@ -21,7 +21,7 @@ public class SpotifySongDownloadService {
 
     public boolean downloadSong(String url) {
 
-        String songTitle = null;
+        String songTitle;
 
         try {
             File directory = new File(downloadDirectory);
@@ -67,19 +67,16 @@ public class SpotifySongDownloadService {
         }
     }
 
-    public boolean deleteFile(String filePath) {
+    public void deleteFile(String filePath) {
         if (filePath != null) {
             File fileToDelete = new File(filePath);
             if (fileToDelete.exists()) {
                 if (fileToDelete.delete()) {
                     logger.info("File deleted successfully: " + filePath);
-                    return true;
                 } else {
                     logger.info("Unable to delete file: " + filePath);
-                    return false;
                 }
             }
         }
-        return false;
     }
 }
