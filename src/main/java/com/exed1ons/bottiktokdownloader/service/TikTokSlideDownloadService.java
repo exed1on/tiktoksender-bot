@@ -63,7 +63,6 @@ public class TikTokSlideDownloadService {
         logger.info("Sending POST request to TikTok API with URL: " + tiktokUrl);
         String apiUrl = "https://ttsave.app/download";
         String jsonPayload = "{\"language_id\":\"1\", \"query\":\"" + tiktokUrl + "\"}";
-        BufferedReader reader = null;
 
         try {
             HttpURLConnection conn = getHttpURLConnection(apiUrl, jsonPayload);
@@ -71,14 +70,15 @@ public class TikTokSlideDownloadService {
             int responseCode = conn.getResponseCode();
             logger.info("POST request response code: " + responseCode);
 
-            InputStream inputStream = conn.getInputStream();
-            String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-
             if (responseCode == HttpURLConnection.HTTP_OK) {
+                InputStream inputStream = conn.getInputStream();
+                String response = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 logger.debug("Received response from TikTok API: " + response);
+
+                logger.info("Response: " + response);
                 return response;
             } else {
-                logger.error("Failed to get a valid response. HTTP Code: " + response);
+                logger.error("Failed to get a valid response. HTTP Code: " + responseCode);
                 return null;
             }
 
