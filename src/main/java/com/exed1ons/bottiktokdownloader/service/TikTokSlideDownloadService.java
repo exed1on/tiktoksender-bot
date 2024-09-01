@@ -32,7 +32,7 @@ public class TikTokSlideDownloadService {
                 logger.debug("Received JSON response: " + jsonResponse);
 
                 Document doc = Jsoup.parse(jsonResponse);
-                Elements downloadLinks = doc.select("img[src]"); // Changed to 'img[src]' for image URLs
+                Elements downloadLinks = doc.select("img[src]");
 
                 logger.info("Found " + downloadLinks.size() + " image links in the response");
 
@@ -40,7 +40,7 @@ public class TikTokSlideDownloadService {
                     String imageUrl = link.attr("src");
                     logger.debug("Processing link: " + imageUrl);
 
-                    if (imageUrl.contains("tos-maliva-i-photomode-us")) {
+                    if (imageUrl.contains("tiktokcdn")) {
                         String downloadedPath = downloadImage(imageUrl);
                         if (downloadedPath != null) {
                             logger.info("Downloaded photo to: " + downloadedPath);
