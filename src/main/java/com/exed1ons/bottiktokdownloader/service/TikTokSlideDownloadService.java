@@ -6,6 +6,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -22,6 +23,9 @@ import java.util.List;
 public class TikTokSlideDownloadService {
 
     private static final Logger logger = LoggerFactory.getLogger(TikTokSlideDownloadService.class);
+
+    @Value("${download.directory.downloads}")
+    private String downloadDirectory;
 
     public List<String> downloadSlides(String tiktokUrl) {
         logger.info("Starting downloadSlides with URL: " + tiktokUrl);
@@ -60,15 +64,54 @@ public class TikTokSlideDownloadService {
         return downloadedPhotos;
     }
 
+    public String downloadAudio(String tiktokUrl) {
+        logger.info("Starting downloadAudio with URL: " + tiktokUrl);
+        try {
+            String jsonResponse = sendPostRequest(tiktokUrl);
+            if (jsonResponse != null) {
+                logger.debug("Received JSON response for audio: " + jsonResponse);
+
+                Document doc = Jsoup.parse(jsonResponse);
+                Elements audioLinks = doc.select("a[href*='download?token=']");
+
+                logger.info("Found " + audioLinks.size() + " audio links in the response");
+
+                Element link = audioLinks.last();
+
+                if(link == null) {
+                    logger.warn("No audio links found in the response");
+                    return null;
+                }
+
+                String audioUrl = link.attr("href");
+                logger.debug("Processing audio link: " + audioUrl);
+
+                if (audioUrl.contains("tiktokio")) {
+                    String downloadedPath = downloadAudio(audioUrl, "mp3");
+                    if (downloadedPath != null) {
+                        logger.info("Downloaded audio to: " + downloadedPath);
+                        return downloadedPath;
+                    } else {
+                        logger.warn("Failed to download audio: " + audioUrl);
+                    }
+                }
+            } else {
+                logger.warn("Received null response for URL: " + tiktokUrl);
+            }
+        } catch (Exception e) {
+            logger.error("Error downloading audio: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
     private String sendPostRequest(String tiktokUrl) {
         logger.info("Sending POST request to TikTok API with URL: " + tiktokUrl);
         String apiUrl = "https://tiktokio.cc/api/v1/tk-htmx";
         String prefix = "dtGslxrcdcG9raW8uY2MO0O0O";
-        String vid = tiktokUrl;
 
         String formData = String.format("prefix=%s&vid=%s",
                 URLEncoder.encode(prefix, StandardCharsets.UTF_8),
-                URLEncoder.encode(vid, StandardCharsets.UTF_8));
+                URLEncoder.encode(tiktokUrl, StandardCharsets.UTF_8));
 
         try {
             HttpURLConnection conn = getHttpURLConnection(apiUrl, formData);
@@ -128,7 +171,7 @@ public class TikTokSlideDownloadService {
                     if (image != null) {
                         String fileName = imageUrl.substring(imageUrl.lastIndexOf("/") + 1, imageUrl.indexOf("~"));
                         String fileExtension = "jpg";
-                        File downloadDir = new File("downloads");
+                        File downloadDir = new File(downloadDirectory);
 
                         if (!downloadDir.exists()) {
                             downloadDir.mkdirs();
@@ -153,5 +196,60 @@ public class TikTokSlideDownloadService {
             logger.error("Error downloading image: " + e.getMessage(), e);
         }
         return null;
+    }
+
+    private String downloadAudio(String fileUrl, String fileExtension) {
+        logger.info("Starting download for file: " + fileUrl);
+        try {
+            URL url = new URL(fileUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            int responseCode = conn.getResponseCode();
+            logger.info("GET request response code: " + responseCode);
+
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                try (InputStream inputStream = conn.getInputStream()) {
+                    byte[] fileData = inputStream.readAllBytes();
+
+                    String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1, fileUrl.indexOf("?"));
+                    File downloadDir = new File(downloadDirectory);
+
+                    if (!downloadDir.exists()) {
+                        downloadDir.mkdirs();
+                        logger.info("Created download directory: " + downloadDir.getAbsolutePath());
+                    }
+
+                    File outputFile = new File(downloadDir, fileName + "." + fileExtension);
+                    logger.info("Saving file to: " + outputFile.getAbsolutePath());
+
+                    try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                        fos.write(fileData);
+                    }
+
+                    logger.info("File downloaded successfully: " + outputFile.getName());
+                    return outputFile.getAbsolutePath();
+                }
+            } else {
+                logger.error("Failed to download file. HTTP response code: " + responseCode);
+            }
+
+        } catch (Exception e) {
+            logger.error("Error downloading file: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public void deleteFile(String fileName) {
+        String filePath = downloadDirectory + File.separator + fileName;
+        File fileToDelete = new File(filePath);
+        if (fileToDelete.exists()) {
+            if (fileToDelete.delete()) {
+                logger.info("File deleted successfully: " + filePath);
+            } else {
+                logger.info("Unable to delete file: " + filePath);
+            }
+        }
     }
 }

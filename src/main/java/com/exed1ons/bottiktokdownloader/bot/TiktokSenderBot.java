@@ -149,13 +149,25 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         if (link.contains("/photo/")) {
             logger.info("Processing TikTok photo link: " + link);
             List<String> downloadedPhotos = tikTokSlideDownloadService.downloadSlides(link);
+            String downloadedAudio = tikTokSlideDownloadService.downloadAudio(link);
+
             if (downloadedPhotos != null && !downloadedPhotos.isEmpty()) {
                 processTikTokPhotos(chatId, downloadedPhotos);
             } else {
                 logger.warn("No photos were downloaded from the TikTok photo link: " + link);
             }
+
+            if (downloadedAudio != null && !downloadedAudio.isEmpty()) {
+                java.io.File file = new java.io.File(downloadedAudio);
+                InputFile audioFile = new InputFile(file);
+                sendTikTokPhotoAudio(chatId, audioFile);
+            } else {
+                logger.warn("No audio was downloaded from the TikTok photo link: " + link);
+            }
+
         } else if (link.contains("/video/")) {
             String videoId = sendTikTokService.extractVideoId(link);
+
             if (videoId != null) {
                 logger.info("Extracted video ID: " + videoId + " from link: " + link);
                 InputFile videoFile = sendTikTokService.getVideo(link);
@@ -276,7 +288,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private void sendMediaGroup(String chatId, List<InputMediaPhoto> mediaGroup) {
         SendMediaGroup sendMediaGroup = new SendMediaGroup();
         sendMediaGroup.setChatId(chatId);
-        sendMediaGroup.setMedias(new ArrayList<>(mediaGroup)); // Note: mediaGroup is already List<InputMediaPhoto>
+        sendMediaGroup.setMedias(new ArrayList<>(mediaGroup));
 
         try {
             execute(sendMediaGroup);
@@ -315,6 +327,19 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
     }
 
+    public void sendTikTokPhotoAudio(String chatId, InputFile audioFile) {
+        SendAudio message = new SendAudio();
+        message.setChatId(chatId);
+        message.setAudio(audioFile);
+
+        try {
+            execute(message);
+            tikTokSlideDownloadService.deleteFile(audioFile.getMediaName());
+        } catch (TelegramApiException e) {
+            logger.error("Error while sending message", e);
+        }
+    }
+
     public void sendAudio(String chatId, InputFile audioFile) {
         SendAudio message = new SendAudio();
         message.setChatId(chatId);
@@ -322,7 +347,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         try {
             execute(message);
-            sendSongService.deleteVideoFile(audioFile.getMediaName());
+            sendSongService.deleteFile(audioFile.getMediaName());
         } catch (TelegramApiException e) {
             logger.error("Error while sending message", e);
         }

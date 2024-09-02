@@ -43,7 +43,7 @@ public class SendSongService {
         }
     }
 
-    public void deleteVideoFile(String fileName) {
+    public void deleteFile(String fileName) {
         String videoFilePath = downloadedVideoPath + File.separator + fileName;
         spotifySongDownloadService.deleteFile(videoFilePath);
     }
