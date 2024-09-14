@@ -229,12 +229,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             }
         }
 
-        if (!mediaGroup.isEmpty()) {
+        if (mediaGroup.size() > 1) {
             sendMediaGroup(chatId, mediaGroup);
 
             deleteMessages(chatId, messageIds);
         } else {
-            sendMessage(chatId, "No photos to send.");
+            logger.warn("Only one photo was found. Sending as a single photo.");
         }
 
         deleteMediaAlbum(imagePaths);
@@ -293,6 +293,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         try {
             execute(sendMediaGroup);
             logger.info("Media group sent to " + chatId);
+
         } catch (TelegramApiException e) {
             logger.error("Failed to send media group to " + chatId, e);
             for (InputMediaPhoto media : mediaGroup) {
