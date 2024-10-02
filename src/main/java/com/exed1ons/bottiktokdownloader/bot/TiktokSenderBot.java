@@ -212,6 +212,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         List<InputMediaPhoto> mediaGroup = new ArrayList<>();
         List<String> messageIds = new ArrayList<>();
+        int mediaGroupCapacity = 10;
 
         for (String imagePath : imagePaths) {
             java.io.File photoFile = new java.io.File(imagePath);
@@ -219,6 +220,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             if (photoFile.exists() && photoFile.isFile()) {
                 try {
                     assignImageToMediaAlbum(chatId, photoFile, mediaGroup, messageIds);
+                    if (mediaGroup.size() == mediaGroupCapacity) {
+                        sendMediaGroup(chatId, mediaGroup);
+                        deleteMessages(chatId, messageIds);
+                        mediaGroup.clear();
+                        messageIds.clear();
+                    }
                 } catch (Exception e) {
                     logger.error("Failed to upload photo: " + imagePath, e);
                     sendMessage(chatId, "Failed to upload photo: " + photoFile.getName());
@@ -229,12 +236,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             }
         }
 
-        if (mediaGroup.size() > 1) {
-            sendMediaGroup(chatId, mediaGroup);
+            if (mediaGroup.size() > 1) {
+                sendMediaGroup(chatId, mediaGroup);
 
-            deleteMessages(chatId, messageIds);
-        } else {
-            logger.warn("Only one photo was found. Sending as a single photo.");
+                deleteMessages(chatId, messageIds);
+            } else {
+                logger.warn("Only one photo was found. Sending as a single photo.");
         }
 
         deleteMediaAlbum(imagePaths);
