@@ -60,7 +60,7 @@ public class Mp4ToGifConverter {
                 "ffmpeg",
                 "-y",
                 "-i", inputFile.getAbsolutePath(),
-                "-vf", "fps=10,scale=320:-1:flags=lanczos",
+                "-vf", "fps=30,scale=380:-1:flags=lanczos",
                 "-gifflags", "+transdiff",
                 "-pix_fmt", "rgba",
                 "-f", "gif",
