@@ -17,7 +17,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,10 +42,11 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private final ImageToMp4Converter imageToMp4Converter;
     private final SendSongService sendSongService;
     private final TikTokSlideDownloadService tikTokSlideDownloadService;
+    private final Mp4ToGifConverter mp4ToGifConverter;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
-    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToMp4Converter imageToMp4Converter, SendSongService sendSongService, TikTokSlideDownloadService tikTokSlideDownloadService) {
+    public TiktokSenderBot(@Value("${bot.username}") String botName, @Value("${bot.token}") String botToken, SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter, SendReelService sendReelService, ImageToMp4Converter imageToMp4Converter, SendSongService sendSongService, TikTokSlideDownloadService tikTokSlideDownloadService, Mp4ToGifConverter mp4ToGifConverter) {
 
         super(botToken);
         this.botName = botName;
@@ -53,6 +57,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         this.imageToMp4Converter = imageToMp4Converter;
         this.sendSongService = sendSongService;
         this.tikTokSlideDownloadService = tikTokSlideDownloadService;
+        this.mp4ToGifConverter = mp4ToGifConverter;
     }
 
     @Override
@@ -75,6 +80,10 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                     sendGif(message.getChatId().toString(),
                             imageToMp4Converter.createMp4FromImage(
                                     downloadImage(photo.getFileId())));
+                } else if (repliedMessage.hasVideo()) {
+                    Video video = repliedMessage.getVideo();
+                    sendGif(message.getChatId().toString(),
+                            mp4ToGifConverter.convertMp4ToGif(downloadVideo(video.getFileId())));
                 } else {
                     sendMessage(message.getChatId().toString(),
                             "/gif command should be used with a photo reply only");
@@ -236,12 +245,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             }
         }
 
-            if (mediaGroup.size() > 1) {
-                sendMediaGroup(chatId, mediaGroup);
+        if (mediaGroup.size() > 1) {
+            sendMediaGroup(chatId, mediaGroup);
 
-                deleteMessages(chatId, messageIds);
-            } else {
-                logger.warn("Only one photo was found. Sending as a single photo.");
+            deleteMessages(chatId, messageIds);
+        } else {
+            logger.warn("Only one photo was found. Sending as a single photo.");
         }
 
         deleteMediaAlbum(imagePaths);
@@ -319,6 +328,33 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             return ImageIO.read(new URL(fileUrl));
         } catch (TelegramApiException | IOException e) {
             logger.error("Failed to download image from Telegram: ", e);
+            return null;
+        }
+    }
+
+    public InputFile downloadVideo(String fileId) {
+        try {
+            File telegramFile = execute(new GetFile(fileId));
+            String filePath = telegramFile.getFilePath();
+
+            String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + filePath;
+
+            java.io.File tempVideoFile = java.io.File.createTempFile("temp_video", ".mp4");
+
+            try (InputStream inputStream = new URL(fileUrl).openStream();
+                 OutputStream outputStream = new FileOutputStream(tempVideoFile)) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+
+            logger.info("Video downloaded successfully: " + tempVideoFile.getAbsolutePath());
+
+            return new InputFile(tempVideoFile);
+        } catch (TelegramApiException | IOException e) {
+            logger.error("Failed to download video from Telegram: ", e);
             return null;
         }
     }
