@@ -234,20 +234,16 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         }
 
         StringBuilder mentionText = new StringBuilder();
-        if (membersWithRole.isEmpty()) {
-            sendMessage(chatId, "No members found with the role @" + roleName);
-        } else {
-            for (GroupMember member : membersWithRole) {
+        for (GroupMember member : membersWithRole) {
 
-                if (member.getUserName() != null) {
-                    mentionText.append("@").append(member.getUserName()).append(" ");
-                } else {
-                    mentionText.append("<a href=\"tg://user?id=")
-                            .append(member.getId())
-                            .append("\">")
-                            .append(Optional.ofNullable(member.getFirstName()).orElse("incognito"))
-                            .append("</a> ");
-                }
+            if (member.getUserName() != null) {
+                mentionText.append("@").append(member.getUserName()).append(" ");
+            } else {
+                mentionText.append("<a href=\"tg://user?id=")
+                        .append(member.getId())
+                        .append("\">")
+                        .append(Optional.ofNullable(member.getFirstName()).orElse("incognito"))
+                        .append("</a> ");
             }
         }
         sendHtmlMessage(chatId, mentionText.toString());
