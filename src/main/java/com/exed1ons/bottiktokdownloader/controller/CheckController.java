@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class CheckController {
 
     @GetMapping("/")
-    public ResponseEntity<Void> checkForUpdates() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<String> checkForUpdates() {
+        return ResponseEntity.ok("Server is running!");
     }
 }
