@@ -235,7 +235,6 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
 
         StringBuilder mentionText = new StringBuilder();
         for (GroupMember member : membersWithRole) {
-
             if (member.getUserName() != null) {
                 mentionText.append("@").append(member.getUserName()).append(" ");
             } else {
