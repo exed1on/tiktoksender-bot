@@ -1,16 +1,14 @@
 package com.exed1ons.bottiktokdownloader.service;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class InstagramReelDownloadService {
@@ -19,11 +17,7 @@ public class InstagramReelDownloadService {
     @Value("${download.directory.video}")
     private String downloadDirectory;
 
-    private static final String cobaltApiUrl = "https://api.cobalt.tools/api/json";
-
-    public void downloadReel(String reelUrl) {
-        String outputFilePath = downloadDirectory + File.separator + Math.abs(reelUrl.hashCode()) + ".mp4";
-
+    public String downloadReel(String reelUrl) {
         try {
             File directory = new File(downloadDirectory);
             if (!directory.exists()) {
@@ -35,78 +29,119 @@ public class InstagramReelDownloadService {
                 }
             }
 
-            HttpURLConnection connection = getHttpURLConnection(reelUrl);
+            String filename = "instagram_" + Math.abs(reelUrl.hashCode()) + ".mp4";
+            String outputFilePath = downloadDirectory + File.separator + filename;
 
-            logger.info("Sending request to Cobalt API for reel: " + reelUrl);
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                String downloadUrl = getDownloadUrl(connection);
-
-                downloadFileFromUrl(downloadUrl, outputFilePath);
-
-            } else {
-                logger.warn("Failed to request reel download. HTTP response code: " + responseCode);
+            String shortcode = extractShortcode(reelUrl);
+            if (shortcode == null) {
+                logger.error("Failed to extract shortcode from URL: " + reelUrl);
+                return null;
             }
-        } catch (IOException | JSONException e) {
-            logger.warn("Error during reel download: " + e.getMessage());
-        }
-    }
 
-    private static String getDownloadUrl(HttpURLConnection connection) throws IOException {
-        StringBuilder response = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-            String responseLine;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
-            }
-        }
+            List<String> command = new ArrayList<>();
+            command.add("python");
+            command.add("-m");
+            command.add("instaloader");
+            command.add("--dirname-pattern");
+            command.add(downloadDirectory);
+            command.add("--filename-pattern");
+            command.add("{shortcode}");
+            command.add("--no-metadata-json");
+            command.add("--no-compress-json");
+            command.add("--no-profile-pic");
+            command.add("--no-captions");
+            command.add("--");
+            command.add("-" + shortcode);
 
-        JSONObject jsonResponse = new JSONObject(response.toString());
-        return jsonResponse.getString("url");
-    }
+            if (executeCommand(command, shortcode)) {
+                String downloadedPath = downloadDirectory + File.separator + shortcode + ".mp4";
+                File downloadedFile = new File(downloadedPath);
 
-    private static HttpURLConnection getHttpURLConnection(String reelUrl) throws IOException {
-        String requestBody = String.format("{\"url\": \"%s\", \"vCodec\": \"h264\", \"vQuality\": \"720\", \"aFormat\": \"mp3\"}", reelUrl);
-
-        URL url = new URL(cobaltApiUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("POST");
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.setDoOutput(true);
-
-        try (OutputStream os = connection.getOutputStream()) {
-            byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-        }
-        return connection;
-    }
-
-    private void downloadFileFromUrl(String fileUrl, String outputFilePath) {
-        try {
-            URL url = new URL(fileUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
-
-            logger.info("Downloading file from: " + fileUrl);
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (InputStream inputStream = connection.getInputStream();
-                     FileOutputStream outputStream = new FileOutputStream(outputFilePath)) {
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+                if (downloadedFile.exists()) {
+                    // Clean up thumbnail file
+                    File thumbnailFile = new File(downloadDirectory + File.separator + shortcode + ".jpg");
+                    if (thumbnailFile.exists()) {
+                        thumbnailFile.delete();
+                        logger.debug("Deleted thumbnail file: " + thumbnailFile.getName());
                     }
-                    logger.info("Reel downloaded successfully to: " + outputFilePath);
+
+                    if (downloadedFile.renameTo(new File(outputFilePath))) {
+                        logger.info("File renamed and ready at: " + outputFilePath);
+                        return outputFilePath;
+                    } else {
+                        logger.info("File downloaded at: " + downloadedPath);
+                        return downloadedPath;
+                    }
                 }
-            } else {
-                logger.warn("Failed to download reel. HTTP response code: " + responseCode);
             }
+
+            logger.error("Failed to download reel from URL: " + reelUrl);
+            return null;
+
         } catch (IOException e) {
-            logger.warn("Error during file download: " + e.getMessage());
+            logger.error("Error during reel download: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    private String extractShortcode(String url) {
+        String pattern = "/reel/([A-Za-z0-9_-]+)";
+        java.util.regex.Pattern r = java.util.regex.Pattern.compile(pattern);
+        java.util.regex.Matcher m = r.matcher(url);
+
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    private boolean executeCommand(List<String> command, String shortcode) {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true);
+
+            logger.info("Executing command: " + String.join(" ", command));
+            Process process = processBuilder.start();
+
+            StringBuilder output = new StringBuilder();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                    logger.info("instaloader: " + line);
+                }
+            }
+
+            boolean finished = process.waitFor(120, TimeUnit.SECONDS);
+
+            if (!finished) {
+                process.destroyForcibly();
+                logger.error("Process timed out after 120 seconds");
+                return false;
+            }
+
+            int exitCode = process.exitValue();
+
+            if (exitCode == 0) {
+                logger.info("Instaloader completed successfully");
+                return true;
+            } else {
+                logger.error("Instaloader failed with exit code: " + exitCode);
+                logger.error("Output: " + output.toString());
+                return false;
+            }
+
+        } catch (IOException e) {
+            if (e.getMessage().contains("Cannot run program")) {
+                logger.error("Python or instaloader is not installed. Please install Python and run: pip install instaloader");
+            } else {
+                logger.error("Error executing command: " + e.getMessage());
+            }
+            return false;
+        } catch (InterruptedException e) {
+            logger.error("Process was interrupted: " + e.getMessage());
+            return false;
         }
     }
 

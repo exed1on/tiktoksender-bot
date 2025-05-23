@@ -22,18 +22,19 @@ public class SendReelService {
     }
 
     public InputFile getVideo(String reelUrl) {
+        String videoFilePath = instagramReelDownloadService.downloadReel(reelUrl);
 
-
-        instagramReelDownloadService.downloadReel(reelUrl);
-
-        String videoFilePath = downloadedVideoPath + File.separator + Math.abs(reelUrl.hashCode()) + ".mp4";
-
-        File videoFile = new File(videoFilePath);
-        if (videoFile.exists()) {
-            logger.info("Video successfully downloaded and found at: " + videoFilePath);
-            return new InputFile(videoFile);
+        if (videoFilePath != null) {
+            File videoFile = new File(videoFilePath);
+            if (videoFile.exists()) {
+                logger.info("Video successfully downloaded and found at: " + videoFilePath);
+                return new InputFile(videoFile);
+            } else {
+                logger.error("Downloaded file not found at: " + videoFilePath);
+                return null;
+            }
         } else {
-            logger.error("Failed to download video. File not found at: " + videoFilePath);
+            logger.error("Failed to download video from URL: " + reelUrl);
             return null;
         }
     }

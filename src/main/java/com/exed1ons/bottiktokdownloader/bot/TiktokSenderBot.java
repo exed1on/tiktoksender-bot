@@ -77,26 +77,12 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                 String messageText = message.getText();
                 logger.info("Received message: " + messageText);
                 logger.info("From: " + message.getChatId());
-                String chatId = message.getChatId().toString();
 
-//                if (messageText.equals("/initrole")) {
-//                    initializeGroupMembers(chatId);
-//                } else if (messageText.matches("@\\w+")) {
-//                    String roleName = messageText.substring(1);
-//                    tagMembersByRole(chatId, roleName);
-//                } else if (messageText.equals("/gif") && message.isReply()) {
-//                    handleGifCommand(message);
-//                } else if (messageText.startsWith("/addrole")) {
-//                    addRole(messageText, chatId);
-//                } else if (messageText.startsWith("/setrole")) {
-//                    assignRole(message, messageText, chatId);
-//                } else if (messageText.startsWith("/removerole")) {
-//                    removeRole(messageText, chatId);
-//                } else if (messageText.startsWith("/unsetrole")) {
-//                    unsetRole(message, messageText, chatId);
-//                } else {
-//                    processMessage(message);
-//                }
+                if (messageText.equals("/gif") && message.isReply()) {
+                    handleGifCommand(message);
+                } else {
+                    processMessage(message);
+                }
             }
         }
     }
