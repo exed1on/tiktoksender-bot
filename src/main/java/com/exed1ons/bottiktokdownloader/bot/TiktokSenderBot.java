@@ -253,7 +253,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             String text = message.getText();
             String link = null;
 
-            Pattern shortUrlPattern = Pattern.compile("https://vm.tiktok.com/[A-Za-z0-9]+");
+            Pattern shortUrlPattern = Pattern.compile("https://v[mt].tiktok.com/[A-Za-z0-9]+");
             Matcher shortUrlMatcher = shortUrlPattern.matcher(text);
             if (shortUrlMatcher.find()) {
                 link = shortUrlMatcher.group();
