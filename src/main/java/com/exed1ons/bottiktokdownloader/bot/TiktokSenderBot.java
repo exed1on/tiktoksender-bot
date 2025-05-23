@@ -43,7 +43,6 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
     private final SendSongService sendSongService;
     private final TikTokSlideDownloadService tikTokSlideDownloadService;
     private final Mp4ToGifConverter mp4ToGifConverter;
-    private final RoleNameService roleNameService;
 
     private static final Logger logger = LoggerFactory.getLogger(TiktokSenderBot.class);
 
@@ -51,8 +50,7 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
                            SendTikTokService sendTikTokService, TikTokLinkConverter tikTokLinkConverter,
                            SendReelService sendReelService, ImageToMp4Converter imageToMp4Converter,
                            SendSongService sendSongService, TikTokSlideDownloadService tikTokSlideDownloadService,
-                           Mp4ToGifConverter mp4ToGifConverter,
-                           RoleNameService roleNameService) {
+                           Mp4ToGifConverter mp4ToGifConverter) {
 
         super(botToken);
         this.botName = botName;
@@ -64,7 +62,6 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
         this.sendSongService = sendSongService;
         this.tikTokSlideDownloadService = tikTokSlideDownloadService;
         this.mp4ToGifConverter = mp4ToGifConverter;
-        this.roleNameService = roleNameService;
     }
 
     @Override
@@ -103,17 +100,17 @@ public class TiktokSenderBot extends TelegramLongPollingBot {
             }
         }
     }
-
-    private void addRole(String messageText, String chatId) {
-        String[] parts = messageText.split(" ", 2);
-        if (parts.length > 1) {
-            String roleName = parts[1].trim();
-            roleNameService.addRole(roleName);
-        } else {
-            sendMessage(chatId, "Usage: /addrole <role>");
-        }
-    }
-
+//
+//    private void addRole(String messageText, String chatId) {
+//        String[] parts = messageText.split(" ", 2);
+//        if (parts.length > 1) {
+//            String roleName = parts[1].trim();
+//            roleNameService.addRole(roleName);
+//        } else {
+//            sendMessage(chatId, "Usage: /addrole <role>");
+//        }
+//    }
+//
 //    private void assignRole(Message message, String messageText, String chatId) {
 //        List<MessageEntity> entities = message.getEntities();
 //        String[] parts = messageText.split(" ", 3);
