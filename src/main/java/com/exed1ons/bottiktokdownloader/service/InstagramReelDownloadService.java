@@ -58,7 +58,6 @@ public class InstagramReelDownloadService {
                 File downloadedFile = new File(downloadedPath);
 
                 if (downloadedFile.exists()) {
-                    // Clean up thumbnail file
                     File thumbnailFile = new File(downloadDirectory + File.separator + shortcode + ".jpg");
                     if (thumbnailFile.exists()) {
                         thumbnailFile.delete();
