@@ -39,7 +39,7 @@ public class InstagramReelDownloadService {
             }
 
             List<String> command = new ArrayList<>();
-            command.add("python3");
+            command.add("python");
             command.add("-m");
             command.add("instaloader");
             command.add("--dirname-pattern");
