@@ -5,6 +5,7 @@ RUN mvn clean package -DskipTests
 FROM openjdk:17.0.1-jdk-slim
 
 RUN apt-get update && apt-get install -y python3 python3-pip ffmpeg && \
+    pip3 install --upgrade pip && \
     pip3 install spotdl && \
     pip3 install --upgrade yt-dlp && \
     pip3 install --upgrade spotdl && \
