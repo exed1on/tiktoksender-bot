@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+
 @Service
 public class TikTokDownloadService {
     private static final Logger logger = LoggerFactory.getLogger(TikTokDownloadService.class);
@@ -34,19 +35,44 @@ public class TikTokDownloadService {
             URL url = new URL(videoUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3");
+
+            connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br, zstd");
+            connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+            connection.setRequestProperty("Connection", "keep-alive");
+            connection.setRequestProperty("DNT", "1");
+            connection.setRequestProperty("Host", "tikcdn.io");
+            connection.setRequestProperty("Priority", "u=0, i");
+            connection.setRequestProperty("Sec-Fetch-Dest", "document");
+            connection.setRequestProperty("Sec-Fetch-Mode", "navigate");
+            connection.setRequestProperty("Sec-Fetch-Site", "none");
+            connection.setRequestProperty("Sec-Fetch-User", "?1");
+            connection.setRequestProperty("Sec-GPC", "1");
+            connection.setRequestProperty("TE", "trailers");
+            connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0");
 
             logger.info("Sending request to: " + videoUrl);
             int responseCode = connection.getResponseCode();
+
             if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (InputStream inputStream = connection.getInputStream();
-                     FileOutputStream outputStream = new FileOutputStream(outputFilePath)) {
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+                String contentType = connection.getContentType();
+                logger.info("Content-Type: " + contentType);
+
+                if (contentType != null && contentType.contains("video")) {
+                    try (InputStream inputStream = connection.getInputStream();
+                         FileOutputStream outputStream = new FileOutputStream(outputFilePath)) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        long totalBytes = 0;
+                        while ((bytesRead = inputStream.read(buffer)) != -1) {
+                            outputStream.write(buffer, 0, bytesRead);
+                            totalBytes += bytesRead;
+                        }
+                        logger.info("Video downloaded successfully to: " + outputFilePath + " (Size: " + totalBytes + " bytes)");
                     }
-                    logger.info("Video downloaded successfully to: " + outputFilePath);
+                } else {
+                    logger.error("Response is not a video. Content-Type: " + contentType);
                 }
             } else {
                 logger.warn("Failed to download video. HTTP response code: " + responseCode);
@@ -57,7 +83,6 @@ public class TikTokDownloadService {
     }
 
     public void sendPreDownloadRequest(String tiktokUrl) {
-
         String postUrl = "https://ssstik.io/abc?url=dl";
         String formData = "id=" + encodeValue(tiktokUrl) + "&locale=en&tt=YXZLVm01";
 
@@ -87,7 +112,7 @@ public class TikTokDownloadService {
             connection.setRequestProperty("Sec-Fetch-Site", "same-origin");
             connection.setRequestProperty("Sec-GPC", "1");
             connection.setRequestProperty("TE", "trailers");
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:129.0) Gecko/20100101 Firefox/129.0");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0");
 
             try (OutputStream os = connection.getOutputStream()) {
                 os.write(formData.getBytes(StandardCharsets.UTF_8));
@@ -96,6 +121,9 @@ public class TikTokDownloadService {
 
             int responseCode = connection.getResponseCode();
             logger.info("Pre-download request sent. Response code: " + responseCode);
+
+            Thread.sleep(500);
+
         } catch (Exception e) {
             logger.error("Error during form submission: " + e.getMessage(), e);
         }
