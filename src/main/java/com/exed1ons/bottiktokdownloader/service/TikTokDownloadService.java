@@ -59,7 +59,7 @@ public class TikTokDownloadService {
                 String contentType = connection.getContentType();
                 logger.info("Content-Type: " + contentType);
 
-                if (contentType != null && contentType.contains("video")) {
+                if (contentType != null && (contentType.contains("video") || contentType.equals("application/octet-stream"))) {
                     try (InputStream inputStream = connection.getInputStream();
                          FileOutputStream outputStream = new FileOutputStream(outputFilePath)) {
                         byte[] buffer = new byte[8192];
