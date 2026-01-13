@@ -4,9 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -15,36 +13,26 @@ public class TikTokLinkConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(TikTokLinkConverter.class);
 
-    private static final String API_URL = "https://unshorten.me/s/";
-
     public String expandUrlUsingApi(String shortenedUrl) throws IOException {
-        logger.info("Attempting to expand shortened URL using API: {}", shortenedUrl);
+        logger.info("Attempting to expand shortened URL: {}", shortenedUrl);
 
-        String apiUrl = API_URL + shortenedUrl;
-        URL url = new URL(apiUrl);
+        URL url = new URL(shortenedUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setInstanceFollowRedirects(true);
 
-        int responseCode = connection.getResponseCode();
-        logger.info("Received response code: {}", responseCode);
+        try {
+            int responseCode = connection.getResponseCode();
+            logger.info("Received response code: {}", responseCode);
 
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null) {
-                    content.append(inputLine);
-                }
-
-                String expandedUrl = content.toString();
-                logger.info("Expanded URL: {}", expandedUrl);
-                return expandedUrl;
-            }
-        } else {
-            logger.error("Failed to expand URL. Response code: {}", responseCode);
-            return null;
+            String expandedUrl = connection.getURL().toString();
+            logger.info("Expanded URL: {}", expandedUrl);
+            return expandedUrl;
+        } finally {
+            connection.disconnect();
         }
     }
 }
